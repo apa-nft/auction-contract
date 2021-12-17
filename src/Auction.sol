@@ -51,7 +51,7 @@ contract Auction is Ownable, ERC721Holder {
         tokenInterface = IERC721Lite(_tokenAddress);
         tokenId = _tokenId;
 
-        tokenInterface.safeTransferFrom(_msgSender(), address(this), _tokenId);
+        tokenInterface.safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
     function bid() external payable {
@@ -64,37 +64,37 @@ contract Auction is Ownable, ERC721Holder {
             totalPendingReturns += highestBid;
         }
 
-        highestBidder = _msgSender();
+        highestBidder = msg.sender;
         highestBid = msg.value;
 
         // withdraw previous bid
-        uint256 amount = pendingReturns[_msgSender()];
+        uint256 amount = pendingReturns[msg.sender];
         if (amount != 0) {
-            pendingReturns[_msgSender()] = 0;
+            pendingReturns[msg.sender] = 0;
 
-            if (!payable(_msgSender()).send(amount)) {
-                pendingReturns[_msgSender()] = amount;
+            if (!payable(msg.sender).send(amount)) {
+                pendingReturns[msg.sender] = amount;
             } else {
                 totalPendingReturns -= amount;
             }
         }
 
-        emit HighestBidIncreased(_msgSender(), msg.value);
+        emit HighestBidIncreased(msg.sender, msg.value);
     }
 
     function hasBid() external view returns (bool) {
-        return pendingReturns[_msgSender()] != 0;
+        return pendingReturns[msg.sender] != 0;
     }
 
     function withdraw() external {
         if (auctionEndTime == 0) revert AuctionHasNotStarted();
 
-        uint256 amount = pendingReturns[_msgSender()];
+        uint256 amount = pendingReturns[msg.sender];
         if (amount != 0) {
-            pendingReturns[_msgSender()] = 0;
+            pendingReturns[msg.sender] = 0;
 
-            if (!payable(_msgSender()).send(amount)) {
-                pendingReturns[_msgSender()] = amount;
+            if (!payable(msg.sender).send(amount)) {
+                pendingReturns[msg.sender] = amount;
             } else {
                 totalPendingReturns -= amount;
             }
@@ -115,10 +115,10 @@ contract Auction is Ownable, ERC721Holder {
     function withdrawHighestBid() external onlyOwner {
         if (!ended) revert AuctionNotYetEnded();
 
-        payable(_msgSender()).transfer(highestBid);
+        payable(msg.sender).transfer(highestBid);
     }
 
     function withdrawEmergency() external onlyOwner {
-        payable(_msgSender()).transfer(address(this).balance);
+        payable(msg.sender).transfer(address(this).balance);
     }
 }
