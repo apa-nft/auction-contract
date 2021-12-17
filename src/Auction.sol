@@ -13,7 +13,6 @@ interface IERC721Lite {
 }
 
 contract Auction is Ownable, ERC721Holder {
-
     IERC721Lite public tokenInterface;
     uint256 public tokenId;
     uint256 public auctionEndTime;
@@ -39,7 +38,11 @@ contract Auction is Ownable, ERC721Holder {
     error BidNotHighEnough();
     error AuctionNotYetEnded();
 
-    function auctionStart(uint256 biddingTime, address _tokenAddress, uint256 _tokenId) external onlyOwner {
+    function auctionStart(
+        uint256 biddingTime,
+        address _tokenAddress,
+        uint256 _tokenId
+    ) external onlyOwner {
         // one time only
         if (auctionEndTime != 0) revert AuctionSlotUsed();
 
@@ -52,7 +55,6 @@ contract Auction is Ownable, ERC721Holder {
     }
 
     function bid() external payable {
-
         if (auctionEndTime == 0) revert AuctionHasNotStarted();
         if (block.timestamp >= auctionEndTime) revert AuctionAlreadyEnded();
         if (msg.value <= highestBid) revert BidNotHighEnough();
@@ -67,13 +69,12 @@ contract Auction is Ownable, ERC721Holder {
 
         // withdraw previous bid
         uint256 amount = pendingReturns[_msgSender()];
-        if(amount != 0) {
+        if (amount != 0) {
             pendingReturns[_msgSender()] = 0;
 
             if (!payable(_msgSender()).send(amount)) {
                 pendingReturns[_msgSender()] = amount;
-            }
-            else {
+            } else {
                 totalPendingReturns -= amount;
             }
         }
@@ -94,15 +95,13 @@ contract Auction is Ownable, ERC721Holder {
 
             if (!payable(_msgSender()).send(amount)) {
                 pendingReturns[_msgSender()] = amount;
-            }
-            else {
+            } else {
                 totalPendingReturns -= amount;
             }
         }
     }
 
     function auctionEnd() external {
-
         if (auctionEndTime == 0) revert AuctionHasNotStarted();
         if (block.timestamp <= auctionEndTime) revert AuctionNotYetEnded();
         if (ended) revert AuctionAlreadyEnded();
