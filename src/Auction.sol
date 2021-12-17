@@ -32,9 +32,16 @@ contract Auction is Ownable, ERC721Holder {
     event HighestBidIncreased(address bidder, uint256 amount);
     event AuctionEnded(address winner, uint256 amount);
 
+    // Errors
+    error AuctionSlotUsed();
+    error AuctionHasNotStarted();
+    error AuctionAlreadyEnded();
+    error BidNotHighEnough();
+    error AuctionNotYetEnded();
+
     function auctionStart(uint256 biddingTime, address _tokenAddress, uint256 _tokenId) external onlyOwner {
         // one time only
-        require(auctionEndTime == 0);
+        if (auctionEndTime != 0) revert AuctionSlotUsed();
 
         auctionEndTime = block.timestamp + biddingTime;
 
@@ -46,9 +53,9 @@ contract Auction is Ownable, ERC721Holder {
 
     function bid() external payable {
 
-        require(auctionEndTime != 0, "AuctionHasNotStarted");
-        require(block.timestamp < auctionEndTime, "AuctionAlreadyEnded");
-        require(msg.value > highestBid, "BidNotHighEnough");
+        if (auctionEndTime == 0) revert AuctionHasNotStarted();
+        if (block.timestamp >= auctionEndTime) revert AuctionAlreadyEnded();
+        if (msg.value <= highestBid) revert BidNotHighEnough();
 
         if (highestBid != 0) {
             pendingReturns[highestBidder] += highestBid;
@@ -79,7 +86,7 @@ contract Auction is Ownable, ERC721Holder {
     }
 
     function withdraw() external {
-        require(auctionEndTime != 0, "AuctionHasNotStarted");
+        if (auctionEndTime == 0) revert AuctionHasNotStarted();
 
         uint256 amount = pendingReturns[_msgSender()];
         if (amount > 0) {
@@ -96,9 +103,9 @@ contract Auction is Ownable, ERC721Holder {
 
     function auctionEnd() external {
 
-        require(auctionEndTime != 0, "AuctionHasNotStarted");
-        require(block.timestamp > auctionEndTime, "AuctionNotYetEnded");
-        require(!ended, "AuctionEndAlreadyCalled");
+        if (auctionEndTime == 0) revert AuctionHasNotStarted();
+        if (block.timestamp <= auctionEndTime) revert AuctionNotYetEnded();
+        if (ended) revert AuctionAlreadyEnded();
 
         ended = true;
         emit AuctionEnded(highestBidder, highestBid);
@@ -107,7 +114,7 @@ contract Auction is Ownable, ERC721Holder {
     }
 
     function withdrawHighestBid() external onlyOwner {
-        require(ended, "AuctionNotYetEnded");
+        if (!ended) revert AuctionNotYetEnded();
 
         payable(_msgSender()).transfer(highestBid);
     }
