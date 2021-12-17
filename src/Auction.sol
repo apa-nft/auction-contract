@@ -67,7 +67,7 @@ contract Auction is Ownable, ERC721Holder {
 
         // withdraw previous bid
         uint256 amount = pendingReturns[_msgSender()];
-        if(amount > 0) {
+        if(amount != 0) {
             pendingReturns[_msgSender()] = 0;
 
             if (!payable(_msgSender()).send(amount)) {
@@ -82,14 +82,14 @@ contract Auction is Ownable, ERC721Holder {
     }
 
     function hasBid() external view returns (bool) {
-        return pendingReturns[_msgSender()] > 0;
+        return pendingReturns[_msgSender()] != 0;
     }
 
     function withdraw() external {
         if (auctionEndTime == 0) revert AuctionHasNotStarted();
 
         uint256 amount = pendingReturns[_msgSender()];
-        if (amount > 0) {
+        if (amount != 0) {
             pendingReturns[_msgSender()] = 0;
 
             if (!payable(_msgSender()).send(amount)) {

@@ -1,6 +1,2 @@
-testFailAlreadyEnded() (gas: 151175)
-testFailHasNotStartedBid() (gas: 9736)
-testFailHasNotStartedWithdrawal() (gas: 3411)
-testFailOnlyOneAuction() (gas: 87213)
-testFailUnderBid() (gas: 148228)
-testSimple() (gas: 329094)
+testErrors() (gas: 169162)
+testSimple() (gas: 329085)

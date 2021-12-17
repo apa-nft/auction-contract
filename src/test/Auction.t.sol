@@ -11,6 +11,7 @@ interface HEVM {
     function warp(uint256 time) external;
     function prank(address, address, bytes calldata) external payable returns (bool, bytes memory);
     function deal(address, uint256) external;
+    function expectRevert(bytes calldata) external;
 }
 
 contract ContractTest is DSTest, ERC721Holder {
@@ -38,7 +39,7 @@ contract ContractTest is DSTest, ERC721Holder {
     function otherPersonBid(uint256 amount) public {
         bytes memory calld = abi.encodePacked(AUCTION_CONTRACT.bid.selector, abi.encode());
         calld = abi.encodePacked(hevm.prank.selector, abi.encode(other, address(AUCTION_CONTRACT), calld));
-        (bool success, bytes memory res) = address(hevm).call{value: amount}(calld);
+        (bool success, bytes memory _res) = address(hevm).call{value: amount}(calld);
         assertTrue(success);
     }
 
@@ -75,32 +76,29 @@ contract ContractTest is DSTest, ERC721Holder {
         assertTrue(address(owner).balance == prevAmount + 3 ether);
     }
 
-    function testFailOnlyOneAuction() public {
+    function testErrors() public {
+
         AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId);
+
+        // --
+        hevm.expectRevert(abi.encodePacked(bytes4(keccak256("AuctionSlotUsed()"))));
         AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId + 1);
-    }
 
-    function testFailHasNotStartedBid() public {
-        AUCTION_CONTRACT.bid{value: 1 ether}();
-    }
-
-    function testFailHasNotStartedWithdrawal() public {
+        // --
+        hevm.expectRevert(abi.encodePacked(bytes4(keccak256("AuctionNotYetEnded()"))));
         AUCTION_CONTRACT.withdrawHighestBid();
-    }
 
-    function testFailUnderBid() public {
-        AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId);
+        // --
         AUCTION_CONTRACT.bid{value: 1 ether}();
+        hevm.expectRevert(abi.encodePacked(bytes4(keccak256("BidNotHighEnough()"))));
         AUCTION_CONTRACT.bid{value: 0.5 ether}();
-    }
-    
-    function testFailAlreadyEnded() public {
-        AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId);
-        AUCTION_CONTRACT.bid{value: 1 ether}();
+        
+        // --
         hevm.warp(2 days);
+        hevm.expectRevert(abi.encodePacked(bytes4(keccak256("AuctionAlreadyEnded()"))));
         AUCTION_CONTRACT.bid{value: 2 ether}();
+
     }
-    
 
     receive() payable external {}
 
