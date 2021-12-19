@@ -22,14 +22,10 @@ contract Auction is Ownable, ERC721Holder {
     uint256 public highestBid;
 
     // Allowed withdrawals of previous bids
-    mapping(address => uint256) pendingReturns;
-    uint256 totalPendingReturns = 0;
+    mapping(address => uint256) private pendingReturns;
+    uint256 private totalPendingReturns = 0;
 
-    bool ended;
-
-    // Events that will be emitted on changes.
-    event HighestBidIncreased(address bidder, uint256 amount);
-    event AuctionEnded(address winner, uint256 amount);
+    bool public ended;
 
     // Errors
     error AuctionSlotUsed();
@@ -37,6 +33,7 @@ contract Auction is Ownable, ERC721Holder {
     error AuctionAlreadyEnded();
     error BidNotHighEnough();
     error AuctionNotYetEnded();
+    error TransferFailed();
 
     function auctionStart(
         uint256 biddingTime,
@@ -46,7 +43,7 @@ contract Auction is Ownable, ERC721Holder {
         // one time only
         if (auctionEndTime != 0) revert AuctionSlotUsed();
 
-        auctionEndTime = block.timestamp + biddingTime;
+        auctionEndTime = block.timestamp + biddingTime; // solhint-disable-line
 
         tokenInterface = IERC721Lite(_tokenAddress);
         tokenId = _tokenId;
@@ -55,8 +52,8 @@ contract Auction is Ownable, ERC721Holder {
     }
 
     function bid() external payable {
-        if (auctionEndTime == 0) revert AuctionHasNotStarted();
-        if (block.timestamp >= auctionEndTime) revert AuctionAlreadyEnded();
+        if (!(auctionEndTime != 0)) revert AuctionHasNotStarted();
+        if (block.timestamp >= auctionEndTime) revert AuctionAlreadyEnded(); // solhint-disable-line
         if (msg.value <= highestBid) revert BidNotHighEnough();
 
         if (highestBid != 0) {
@@ -69,17 +66,15 @@ contract Auction is Ownable, ERC721Holder {
 
         // withdraw previous bid
         uint256 amount = pendingReturns[msg.sender];
+
         if (amount != 0) {
             pendingReturns[msg.sender] = 0;
+            totalPendingReturns -= amount;
 
-            if (!payable(msg.sender).send(amount)) {
-                pendingReturns[msg.sender] = amount;
-            } else {
-                totalPendingReturns -= amount;
-            }
+            //slither-disable-next-line low-level-calls
+            (bool success, ) = msg.sender.call{value: amount}(""); // solhint-disable-line
+            if (!success) revert TransferFailed();
         }
-
-        emit HighestBidIncreased(msg.sender, msg.value);
     }
 
     function hasBid() external view returns (bool) {
@@ -87,27 +82,25 @@ contract Auction is Ownable, ERC721Holder {
     }
 
     function withdraw() external {
-        if (auctionEndTime == 0) revert AuctionHasNotStarted();
+        if (!(auctionEndTime != 0)) revert AuctionHasNotStarted();
 
         uint256 amount = pendingReturns[msg.sender];
         if (amount != 0) {
             pendingReturns[msg.sender] = 0;
+            totalPendingReturns -= amount;
 
-            if (!payable(msg.sender).send(amount)) {
-                pendingReturns[msg.sender] = amount;
-            } else {
-                totalPendingReturns -= amount;
-            }
+            //slither-disable-next-line low-level-calls
+            (bool success, ) = msg.sender.call{value: amount}(""); // solhint-disable-line
+            if (!success) revert TransferFailed();
         }
     }
 
     function auctionEnd() external {
-        if (auctionEndTime == 0) revert AuctionHasNotStarted();
-        if (block.timestamp <= auctionEndTime) revert AuctionNotYetEnded();
+        if (!(auctionEndTime != 0)) revert AuctionHasNotStarted();
+        if (block.timestamp <= auctionEndTime) revert AuctionNotYetEnded(); // solhint-disable-line
         if (ended) revert AuctionAlreadyEnded();
 
         ended = true;
-        emit AuctionEnded(highestBidder, highestBid);
 
         tokenInterface.safeTransferFrom(address(this), highestBidder, tokenId);
     }
