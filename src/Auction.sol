@@ -60,8 +60,9 @@ contract Auction {
         // one time only
         if (auctionEndTime != 0) revert AuctionSlotUsed();
 
-        auctionEndTime = block.timestamp + biddingTime; // solhint-disable-line
-
+        unchecked {
+            auctionEndTime = block.timestamp + biddingTime; // solhint-disable-line
+        }
         tokenInterface = IERC721Lite(_tokenAddress);
         tokenId = _tokenId;
 
@@ -69,13 +70,17 @@ contract Auction {
     }
 
     function bid() external payable {
-        if (!(auctionEndTime != 0)) revert AuctionHasNotStarted();
-        if (block.timestamp >= auctionEndTime) revert AuctionAlreadyEnded(); // solhint-disable-line
+        uint256 endTime = auctionEndTime;
+
+        if (!(endTime != 0)) revert AuctionHasNotStarted();
+        if (block.timestamp >= endTime) revert AuctionAlreadyEnded(); // solhint-disable-line
         if (msg.value <= highestBid) revert BidNotHighEnough();
 
         if (highestBid != 0) {
-            pendingReturns[highestBidder] += highestBid;
-            totalPendingReturns += highestBid;
+            unchecked {
+                pendingReturns[highestBidder] += highestBid;
+                totalPendingReturns += highestBid;
+            }
         }
 
         highestBidder = msg.sender;
@@ -86,8 +91,10 @@ contract Auction {
 
         if (amount != 0) {
             pendingReturns[msg.sender] = 0;
-            totalPendingReturns -= amount;
-
+    
+            unchecked {
+                totalPendingReturns -= amount;
+            }
             //slither-disable-next-line low-level-calls
             (bool success, ) = msg.sender.call{value: amount}(""); // solhint-disable-line
             if (!success) revert TransferFailed();
@@ -104,8 +111,9 @@ contract Auction {
         uint256 amount = pendingReturns[msg.sender];
         if (amount != 0) {
             pendingReturns[msg.sender] = 0;
-            totalPendingReturns -= amount;
-
+            unchecked {
+                totalPendingReturns -= amount;
+            }
             //slither-disable-next-line low-level-calls
             (bool success, ) = msg.sender.call{value: amount}(""); // solhint-disable-line
             if (!success) revert TransferFailed();
@@ -113,8 +121,10 @@ contract Auction {
     }
 
     function auctionEnd() external {
-        if (!(auctionEndTime != 0)) revert AuctionHasNotStarted();
-        if (block.timestamp <= auctionEndTime) revert AuctionNotYetEnded(); // solhint-disable-line
+        uint256 endTime = auctionEndTime;
+
+        if (!(endTime != 0)) revert AuctionHasNotStarted();
+        if (block.timestamp <= endTime) revert AuctionNotYetEnded(); // solhint-disable-line
         if (ended) revert AuctionAlreadyEnded();
 
         ended = true;
@@ -125,11 +135,15 @@ contract Auction {
     function withdrawHighestBid() external onlyOwner {
         if (!ended) revert AuctionNotYetEnded();
 
-        payable(msg.sender).transfer(highestBid);
+        //slither-disable-next-line low-level-calls
+        (bool success, ) = msg.sender.call{value: highestBid}(""); // solhint-disable-line
+        if (!success) revert TransferFailed();
     }
 
     function withdrawEmergency() external onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
+        //slither-disable-next-line low-level-calls
+        (bool success, ) = msg.sender.call{value: address(this).balance}(""); // solhint-disable-line
+        if (!success) revert TransferFailed();
     }
 
     function onERC721Received(

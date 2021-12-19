@@ -117,6 +117,8 @@ contract ContractTest is DSTest, ERC721Holder {
             abi.encodePacked(bytes4(keccak256("AuctionAlreadyEnded()")))
         );
         AUCTION_CONTRACT.bid{value: 2 ether}();
+
+        AUCTION_CONTRACT.setOwner(address(0));
     }
 
     receive() external payable {} // solhint-disable-line
