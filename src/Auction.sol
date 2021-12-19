@@ -48,6 +48,7 @@ contract Auction {
     }
 
     function setOwner(address newOwner) external onlyOwner {
+        //slither-disable-next-line missing-zero-check
         owner = newOwner;
         emit OwnerUpdated(owner);
     }
@@ -91,7 +92,7 @@ contract Auction {
 
         if (amount != 0) {
             pendingReturns[msg.sender] = 0;
-    
+
             unchecked {
                 totalPendingReturns -= amount;
             }
@@ -151,7 +152,7 @@ contract Auction {
         address,
         uint256,
         bytes memory
-    ) public virtual returns (bytes4) {
+    ) external virtual returns (bytes4) {
         return this.onERC721Received.selector;
     }
 }
