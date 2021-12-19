@@ -51,7 +51,7 @@ contract ContractTest is DSTest, ERC721Holder {
             hevm.prank.selector,
             abi.encode(other, address(AUCTION_CONTRACT), calld)
         );
-        (bool success, bytes memory _res) = address(hevm).call{value: amount}(  // solhint-disable-line
+        (bool success, bytes memory _res) = address(hevm).call{value: amount}( // solhint-disable-line
             calld
         );
         assertTrue(success);
@@ -119,7 +119,7 @@ contract ContractTest is DSTest, ERC721Holder {
         AUCTION_CONTRACT.bid{value: 2 ether}();
     }
 
-    receive() external payable {}  // solhint-disable-line
+    receive() external payable {} // solhint-disable-line
 
-    fallback() external payable {}  // solhint-disable-line
+    fallback() external payable {} // solhint-disable-line
 }

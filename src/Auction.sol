@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-
 interface IERC721Lite {
     function safeTransferFrom(
         address from,
@@ -12,7 +9,9 @@ interface IERC721Lite {
     ) external;
 }
 
-contract Auction is Ownable, ERC721Holder {
+contract Auction {
+    address public owner;
+
     IERC721Lite public tokenInterface;
     uint256 public tokenId;
     uint256 public auctionEndTime;
@@ -34,6 +33,24 @@ contract Auction is Ownable, ERC721Holder {
     error BidNotHighEnough();
     error AuctionNotYetEnded();
     error TransferFailed();
+    error Unauthorized();
+
+    // Events
+    event OwnerUpdated(address indexed owner);
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
+    }
+
+    function setOwner(address newOwner) external onlyOwner {
+        owner = newOwner;
+        emit OwnerUpdated(owner);
+    }
 
     function auctionStart(
         uint256 biddingTime,
@@ -113,5 +130,14 @@ contract Auction is Ownable, ERC721Holder {
 
     function withdrawEmergency() external onlyOwner {
         payable(msg.sender).transfer(address(this).balance);
+    }
+
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) public virtual returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }
