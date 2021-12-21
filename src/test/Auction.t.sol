@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.10;
+pragma solidity 0.8.11;
 
 import "ds-test/test.sol";
 
@@ -10,11 +10,9 @@ import "../Auction.sol";
 interface HEVM {
     function warp(uint256 time) external;
 
-    function prank(
-        address,
-        address,
-        bytes calldata
-    ) external payable returns (bool, bytes memory);
+    function prank(address) external;
+    function startPrank(address) external;
+    function stopPrank() external;
 
     function deal(address, uint256) external;
 
@@ -26,8 +24,8 @@ contract ContractTest is DSTest, ERC721Holder {
 
     ERC721Mock private MOCK_TOKEN;
     Auction private AUCTION_CONTRACT;
-    address private owner;
-    address private other = address(0xdeadbeef);
+    address owner;
+    address other = address(0xdeadbeef);
 
     uint256 private tokenId = 0;
 
@@ -43,18 +41,8 @@ contract ContractTest is DSTest, ERC721Holder {
     }
 
     function otherPersonBid(uint256 amount) public {
-        bytes memory calld = abi.encodePacked(
-            AUCTION_CONTRACT.bid.selector,
-            abi.encode()
-        );
-        calld = abi.encodePacked(
-            hevm.prank.selector,
-            abi.encode(other, address(AUCTION_CONTRACT), calld)
-        );
-        (bool success, bytes memory _res) = address(hevm).call{value: amount}( // solhint-disable-line
-            calld
-        );
-        assertTrue(success);
+        hevm.prank(other);
+        AUCTION_CONTRACT.bid{value: amount}();
     }
 
     function testSimple() public {
@@ -68,9 +56,9 @@ contract ContractTest is DSTest, ERC721Holder {
         // User gets his past overbid amount if he bids again
         hevm.deal(other, 10 ether);
         otherPersonBid(2 ether);
-        assert(address(other).balance == 8 ether);
+        assert(other.balance == 8 ether);
         otherPersonBid(3 ether);
-        assert(address(other).balance == 7 ether);
+        assert(other.balance == 7 ether);
 
         // Overbid return
         assertTrue(AUCTION_CONTRACT.hasBid());

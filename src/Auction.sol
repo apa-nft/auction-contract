@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.10;
+pragma solidity 0.8.11;
 
 interface IERC721Lite {
     function safeTransferFrom(
@@ -155,4 +155,9 @@ contract Auction {
     ) external virtual returns (bytes4) {
         return this.onERC721Received.selector;
     }
+
+    receive() external payable {
+    } // solhint-disable-line
+
+    fallback() external payable {} // solhint-disable-line
 }
