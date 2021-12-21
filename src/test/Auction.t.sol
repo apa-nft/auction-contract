@@ -81,32 +81,48 @@ contract ContractTest is DSTest, ERC721Holder {
         AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId);
 
         // --
-        hevm.expectRevert(
-            abi.encodePacked(bytes4(keccak256("AuctionSlotUsed()")))
-        );
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionSlotUsed.selector));
         AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId + 1);
 
         // --
-        hevm.expectRevert(
-            abi.encodePacked(bytes4(keccak256("AuctionNotYetEnded()")))
-        );
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionNotYetEnded.selector));
         AUCTION_CONTRACT.withdrawHighestBid();
 
         // --
         AUCTION_CONTRACT.bid{value: 1 ether}();
-        hevm.expectRevert(
-            abi.encodePacked(bytes4(keccak256("BidNotHighEnough()")))
-        );
+        hevm.expectRevert(abi.encodeWithSelector(Auction.BidNotHighEnough.selector));
         AUCTION_CONTRACT.bid{value: 0.5 ether}();
 
         // --
         hevm.warp(2 days);
-        hevm.expectRevert(
-            abi.encodePacked(bytes4(keccak256("AuctionAlreadyEnded()")))
-        );
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionAlreadyEnded.selector));
         AUCTION_CONTRACT.bid{value: 2 ether}();
 
+        AUCTION_CONTRACT.setOwner(other);
+        hevm.prank(other);
         AUCTION_CONTRACT.setOwner(address(0));
+    }
+
+    function testUnauthorized() public {
+        // --
+        hevm.prank(other);
+        hevm.expectRevert(abi.encodeWithSelector(Auction.Unauthorized.selector));
+        AUCTION_CONTRACT.setOwner(address(0));
+
+        // --
+        hevm.prank(other);
+        hevm.expectRevert(abi.encodeWithSelector(Auction.Unauthorized.selector));
+        AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId);
+
+        // --
+        hevm.prank(other);
+        hevm.expectRevert(abi.encodeWithSelector(Auction.Unauthorized.selector));
+        AUCTION_CONTRACT.withdrawHighestBid();
+
+        // --
+        hevm.prank(other);
+        hevm.expectRevert(abi.encodeWithSelector(Auction.Unauthorized.selector));
+        AUCTION_CONTRACT.withdrawEmergency();
     }
 
     receive() external payable {} // solhint-disable-line
