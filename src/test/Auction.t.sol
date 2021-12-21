@@ -69,6 +69,10 @@ contract ContractTest is DSTest, ERC721Holder {
         // End Auction and Giveaway
         hevm.warp(2 days);
         AUCTION_CONTRACT.auctionEnd();
+
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionAlreadyEnded.selector));
+        AUCTION_CONTRACT.auctionEnd();
+
         assertTrue(other == MOCK_TOKEN.ownerOf(tokenId));
 
         // Collect HighestBid
@@ -78,6 +82,14 @@ contract ContractTest is DSTest, ERC721Holder {
     }
 
     function testErrors() public {
+        
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionHasNotStarted.selector));
+        AUCTION_CONTRACT.bid{value: 1 ether}();
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionHasNotStarted.selector));
+        AUCTION_CONTRACT.withdraw();
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionHasNotStarted.selector));
+        AUCTION_CONTRACT.auctionEnd();
+
         AUCTION_CONTRACT.auctionStart(1 days, address(MOCK_TOKEN), tokenId);
 
         // --
@@ -87,11 +99,15 @@ contract ContractTest is DSTest, ERC721Holder {
         // --
         hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionNotYetEnded.selector));
         AUCTION_CONTRACT.withdrawHighestBid();
+        hevm.expectRevert(abi.encodeWithSelector(Auction.AuctionNotYetEnded.selector));
+        AUCTION_CONTRACT.auctionEnd();
 
         // --
         AUCTION_CONTRACT.bid{value: 1 ether}();
         hevm.expectRevert(abi.encodeWithSelector(Auction.BidNotHighEnough.selector));
         AUCTION_CONTRACT.bid{value: 0.5 ether}();
+        hevm.expectRevert(abi.encodeWithSelector(Auction.BidNotHighEnough.selector));
+        AUCTION_CONTRACT.bid{value: 1 ether}();
 
         // --
         hevm.warp(2 days);
