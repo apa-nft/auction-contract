@@ -72,16 +72,16 @@ contract Auction {
 
     function bid() external payable {
         uint256 endTime = auctionEndTime;
-        uint256 _highestBid = highestBid;
+        uint256 prevBid = highestBid;
 
         if (endTime == 0) revert AuctionHasNotStarted();
         if (block.timestamp >= endTime) revert AuctionAlreadyEnded(); // solhint-disable-line
-        if (msg.value <= _highestBid) revert BidNotHighEnough();
+        if (msg.value <= prevBid) revert BidNotHighEnough();
 
-        if (_highestBid != 0) {
+        if (prevBid != 0) {
             unchecked {
-                pendingReturns[highestBidder] += _highestBid;
-                totalPendingReturns += _highestBid;
+                pendingReturns[highestBidder] += prevBid;
+                totalPendingReturns += prevBid;
             }
         }
 
