@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 interface IERC721Lite {
-    function safeTransferFrom(
+    function transferFrom(
         address from,
         address to,
         uint256 tokenId
@@ -20,7 +20,7 @@ contract Auction {
     address public highestBidder;
     uint256 public highestBid;
 
-    // Allowed withdrawals of previous bids
+    // Allows withdrawals of beaten bids
     mapping(address => uint256) private pendingReturns;
     uint256 private totalPendingReturns = 0;
 
@@ -67,27 +67,28 @@ contract Auction {
         tokenInterface = IERC721Lite(_tokenAddress);
         tokenId = _tokenId;
 
-        tokenInterface.safeTransferFrom(msg.sender, address(this), _tokenId);
+        tokenInterface.transferFrom(msg.sender, address(this), _tokenId);
     }
 
     function bid() external payable {
         uint256 endTime = auctionEndTime;
+        uint256 _highestBid = highestBid;
 
-        if (!(endTime != 0)) revert AuctionHasNotStarted();
+        if (endTime == 0) revert AuctionHasNotStarted();
         if (block.timestamp >= endTime) revert AuctionAlreadyEnded(); // solhint-disable-line
-        if (msg.value <= highestBid) revert BidNotHighEnough();
+        if (msg.value <= _highestBid) revert BidNotHighEnough();
 
-        if (highestBid != 0) {
+        if (_highestBid != 0) {
             unchecked {
-                pendingReturns[highestBidder] += highestBid;
-                totalPendingReturns += highestBid;
+                pendingReturns[highestBidder] += _highestBid;
+                totalPendingReturns += _highestBid;
             }
         }
 
         highestBidder = msg.sender;
         highestBid = msg.value;
 
-        // withdraw previous bid
+        // withdraw previous msg.sender bid, if it exists
         uint256 amount = pendingReturns[msg.sender];
 
         if (amount != 0) {
@@ -107,7 +108,7 @@ contract Auction {
     }
 
     function withdraw() external {
-        if (!(auctionEndTime != 0)) revert AuctionHasNotStarted();
+        if (auctionEndTime == 0) revert AuctionHasNotStarted();
 
         uint256 amount = pendingReturns[msg.sender];
         if (amount != 0) {
@@ -124,13 +125,13 @@ contract Auction {
     function auctionEnd() external {
         uint256 endTime = auctionEndTime;
 
-        if (!(endTime != 0)) revert AuctionHasNotStarted();
+        if (endTime == 0) revert AuctionHasNotStarted();
         if (block.timestamp <= endTime) revert AuctionNotYetEnded(); // solhint-disable-line
         if (ended) revert AuctionAlreadyEnded();
 
         ended = true;
 
-        tokenInterface.safeTransferFrom(address(this), highestBidder, tokenId);
+        tokenInterface.transferFrom(address(this), highestBidder, tokenId);
     }
 
     function withdrawHighestBid() external onlyOwner {
@@ -145,6 +146,8 @@ contract Auction {
         //slither-disable-next-line low-level-calls
         (bool success, ) = msg.sender.call{value: address(this).balance}(""); // solhint-disable-line
         if (!success) revert TransferFailed();
+
+        tokenInterface.transferFrom(address(this), owner, tokenId);
     }
 
     function onERC721Received(
@@ -156,8 +159,7 @@ contract Auction {
         return this.onERC721Received.selector;
     }
 
-    receive() external payable {
-    } // solhint-disable-line
+    receive() external payable {} // solhint-disable-line
 
     fallback() external payable {} // solhint-disable-line
 }

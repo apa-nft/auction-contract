@@ -1,3 +1,4 @@
-testErrors() (gas: 173809)
-testSimple() (gas: 315808)
-testUnauthorized() (gas: 16226)
+testEmergency() (gas: 158877)
+testErrors() (gas: 201627)
+testSimple() (gas: 313305)
+testUnauthorized() (gas: 16248)
