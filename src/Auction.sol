@@ -147,7 +147,7 @@ contract Auction {
         (bool success, ) = msg.sender.call{value: address(this).balance}(""); // solhint-disable-line
         if (!success) revert TransferFailed();
 
-        tokenInterface.transferFrom(address(this), owner, tokenId);
+        tokenInterface.transferFrom(address(this), msg.sender, tokenId);
     }
 
     function onERC721Received(
